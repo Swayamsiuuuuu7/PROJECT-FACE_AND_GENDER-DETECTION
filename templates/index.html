@@ -1,27 +1,42 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Live Age & Gender Detection</title>
+  <title>Live Age & Gender Detection</title>
 </head>
 <body>
-    <h1>Live Age & Gender Detection</h1>
-    <video id="video" width="640" height="480" autoplay muted></video>
-    <canvas id="canvas" width="640" height="480" style="display:none;"></canvas>
-    <div id="results"></div>
+  <h1>Live Age & Gender Detection</h1>
+  <video id="video" width="640" height="480" autoplay muted></video>
+  <canvas id="canvas" width="640" height="480" style="display:none;"></canvas>
+  <div id="results"></div>
 
-    <script>
-        const video = document.getElementById('video');
-        const canvas = document.getElementById('canvas');
-        const resultsDiv = document.getElementById('results');
-        const ctx = canvas.getContext('2d');
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const resultsDiv = document.getElementById('results');
+    const ctx = canvas.getContext('2d');
 
-        navigator.mediaDevices.getUserMedia({ video: true })
-            .then(stream => {
-                video.srcObject = stream;
-            })
-            .catch(err => console.error("Error accessing webcam:", err));
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => {
+        video.srcObject = stream;
+        video.play();
+        setInterval(sendFrame, 1000);  // send one frame per second
+      })
+      .catch(err => console.error("Error accessing webcam:", err));
 
-        // We'll add sending frames and showing predictions later
-    </script>
+    function sendFrame() {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(async (blob) => {
+        let formData = new FormData();
+        formData.append('image', blob, 'frame.jpg');
+
+        const response = await fetch('/detect', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await response.json();
+        resultsDiv.innerText = data.result || "No face detected";
+      }, 'image/jpeg');
+    }
+  </script>
 </body>
 </html>
